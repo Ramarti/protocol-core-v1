@@ -182,7 +182,6 @@ contract GovernanceTest is BaseTest {
             address(newGovernance),
             newGovernance.setState.selector
         );
-        console2.log("canCall", immediate, delay);
         vm.prank(newAdmin);
         newGovernance.setState(GovernanceLib.ProtocolState.Paused);
 
