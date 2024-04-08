@@ -92,11 +92,7 @@ contract ModuleRegistry is IModuleRegistry, GovernableUpgradeable, UUPSUpgradeab
     /// @param name The name of the module to be registered.
     /// @param moduleAddress The address of the module.
     /// @param moduleType The type of the module being registered.
-    function registerModule(
-        string memory name,
-        address moduleAddress,
-        string memory moduleType
-    ) external restricted {
+    function registerModule(string memory name, address moduleAddress, string memory moduleType) external restricted {
         _registerModule(name, moduleAddress, moduleType);
     }
 

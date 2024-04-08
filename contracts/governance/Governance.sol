@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.23;
 
+// solhint-disable-next-line max-line-length
 import { AccessManagerUpgradeable } from "@openzeppelin/contracts-upgradeable/access/manager/AccessManagerUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
@@ -61,7 +62,7 @@ contract Governance is IGovernance, AccessManagerUpgradeable, ERC165Upgradeable,
         address caller,
         address target,
         bytes4 selector
-    ) public virtual override(IAccessManager, AccessManagerUpgradeable) view returns (bool allowed, uint32 delay) {
+    ) public view virtual override(IAccessManager, AccessManagerUpgradeable) returns (bool allowed, uint32 delay) {
         return super.canCall(caller, target, selector);
     }
 

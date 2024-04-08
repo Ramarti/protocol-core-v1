@@ -11,7 +11,6 @@ import { GovernanceLib } from "../lib/GovernanceLib.sol";
 /// @title Governable
 /// @dev All contracts managed by governance should inherit from this contract.
 abstract contract Governable is AccessManaged {
-
     modifier whenNotPaused() {
         if (IGovernance(authority()).getState() == GovernanceLib.ProtocolState.Paused) {
             revert Errors.Governance__ProtocolPaused();
@@ -35,6 +34,5 @@ abstract contract Governable is AccessManaged {
         if (IGovernance(newAuthority).getState() != IGovernance(newAuthority).getState())
             revert Errors.Governance__InconsistentState();
         super.setAuthority(newAuthority);
-        
     }
 }

@@ -9,8 +9,7 @@ import { GovernanceLib } from "../../../../contracts/lib/GovernanceLib.sol";
 contract MockGovernance is AccessManager, IGovernance {
     GovernanceLib.ProtocolState internal state;
 
-    constructor(address admin) AccessManager(admin) {
-    }
+    constructor(address admin) AccessManager(admin) {}
 
     function setState(GovernanceLib.ProtocolState newState) external {
         state = newState;

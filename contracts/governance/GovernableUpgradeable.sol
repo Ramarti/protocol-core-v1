@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+// solhint-disable-next-line max-line-length
 import { AccessManagedUpgradeable } from "@openzeppelin/contracts-upgradeable/access/manager/AccessManagedUpgradeable.sol";
 
 import { Errors } from "../lib/Errors.sol";
@@ -12,7 +13,6 @@ import { GovernanceLib } from "../lib/GovernanceLib.sol";
 /// @title Governable
 /// @dev All contracts managed by governance should inherit from this contract.
 abstract contract GovernableUpgradeable is Initializable, AccessManagedUpgradeable {
-
     modifier whenNotPaused() {
         if (IGovernance(authority()).getState() == GovernanceLib.ProtocolState.Paused) {
             revert Errors.Governance__ProtocolPaused();
@@ -40,6 +40,5 @@ abstract contract GovernableUpgradeable is Initializable, AccessManagedUpgradeab
         if (IGovernance(newAuthority).getState() != IGovernance(newAuthority).getState())
             revert Errors.Governance__InconsistentState();
         super.setAuthority(newAuthority);
-        
     }
 }

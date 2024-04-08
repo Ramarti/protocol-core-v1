@@ -15,8 +15,6 @@ import { MockGovernable } from "../mocks/governance/MockGovernable.sol";
 import { BaseTest } from "../utils/BaseTest.t.sol";
 import { TestProxyHelper } from "test/foundry/utils/TestProxyHelper.sol";
 
-import { console2 } from "forge-std/console2.sol";
-
 contract GovernanceTest is BaseTest {
     MockModule mockModule;
     MockModule moduleWithoutPermission;
@@ -86,7 +84,6 @@ contract GovernanceTest is BaseTest {
         mockGovernable.restrictedMethodOtherRole();
     }
 
-
     function test_Governance_revert_restrictedMethodWithOldAdmin() public {
         address newAdmin = vm.addr(3);
 
@@ -109,7 +106,7 @@ contract GovernanceTest is BaseTest {
     function test_Governance_adminFunctionWithNewGov() public {
         address newAdmin = vm.addr(3);
         Governance newGovernance = _deployGovernance(newAdmin);
-        
+
         vm.prank(u.admin);
         governance.updateAuthority(address(mockGovernable), address(newGovernance));
 
@@ -130,8 +127,7 @@ contract GovernanceTest is BaseTest {
         mockGovernable.restrictedMethod();
     }
 
-
-    function test_Governance_revert_checkPermissionUnPausedThenPauseThenUnPause() withRegisteredMockModule2 public {
+    function test_Governance_revert_checkPermissionUnPausedThenPauseThenUnPause() public withRegisteredMockModule2 {
         vm.startPrank(u.admin);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -143,10 +139,8 @@ contract GovernanceTest is BaseTest {
             )
         );
         accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
-        console2.log("admin", u.admin);
         (bool inRole, uint32 executionDelay) = governance.hasRole(0, u.admin);
 
-        console2.log("hasRole", inRole, executionDelay);
         governance.setState(GovernanceLib.ProtocolState.Paused);
         // vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));
         // accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
@@ -183,7 +177,11 @@ contract GovernanceTest is BaseTest {
     function test_Governance_revert_setNewGovernanceInconsistentState() public {
         address newAdmin = vm.addr(3);
         Governance newGovernance = _deployGovernance(newAdmin);
-        (bool immediate, uint32 delay) = newGovernance.canCall(newAdmin, address(newGovernance), newGovernance.setState.selector);
+        (bool immediate, uint32 delay) = newGovernance.canCall(
+            newAdmin,
+            address(newGovernance),
+            newGovernance.setState.selector
+        );
         console2.log("canCall", immediate, delay);
         vm.prank(newAdmin);
         newGovernance.setState(GovernanceLib.ProtocolState.Paused);
@@ -193,7 +191,7 @@ contract GovernanceTest is BaseTest {
         governance.updateAuthority(address(mockGovernable), address(newGovernance));
     }
 
-    function test_Governance_revert_setPermissionWhenPaused() withRegisteredMockModule2 public {
+    function test_Governance_revert_setPermissionWhenPaused() public withRegisteredMockModule2 {
         vm.startPrank(u.admin);
         governance.setState(GovernanceLib.ProtocolState.Paused);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));
@@ -206,7 +204,7 @@ contract GovernanceTest is BaseTest {
         );
     }
 
-    function test_Governance_revert_checkPermissionWhenPaused() withRegisteredMockModule2 public {
+    function test_Governance_revert_checkPermissionWhenPaused() public withRegisteredMockModule2 {
         vm.startPrank(u.admin);
         governance.setState(GovernanceLib.ProtocolState.Paused);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));

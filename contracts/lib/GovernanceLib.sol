@@ -9,7 +9,6 @@ library GovernanceLib {
     uint64 public constant UPGRADER_ROLE = 1;
     uint64 public constant PAUSER_ROLE = 2;
 
-
     /// @notice An enum containing the different states the protocol can be in.
     /// @param Unpaused The unpaused state.
     /// @param Paused The paused state.
@@ -17,6 +16,4 @@ library GovernanceLib {
         Unpaused,
         Paused
     }
-
-
 }

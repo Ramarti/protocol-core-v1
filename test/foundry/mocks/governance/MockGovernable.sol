@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.23;
 
-
 import { Governable } from "../../../../contracts/governance/Governable.sol";
 
 contract MockGovernable is Governable {
-
     bool public methodCalled;
     bool public methodCalledOtherRole;
 
@@ -20,5 +18,4 @@ contract MockGovernable is Governable {
     function restrictedMethodOtherRole() external restricted {
         methodCalledOtherRole = true;
     }
-
 }
