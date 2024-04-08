@@ -5,11 +5,13 @@ import { IIPAccount } from "contracts/interfaces/IIPAccount.sol";
 import { AccessPermission } from "contracts/lib/AccessPermission.sol";
 import { Errors } from "contracts/lib/Errors.sol";
 
+import { MockModule } from "../mocks/module/MockModule.sol";
 import { MockAccessControlledModule } from "../mocks/module/MockAccessControlledModule.sol";
 import { BaseTest } from "../utils/BaseTest.t.sol";
 
 contract AccessControlledTest is BaseTest {
     MockAccessControlledModule public mockModule;
+    MockModule mockModule2;
     IIPAccount public ipAccount;
 
     address public owner = vm.addr(1);
@@ -32,6 +34,9 @@ contract AccessControlledTest is BaseTest {
             "MockAccessControlledModule"
         );
         moduleRegistry.registerModule("MockAccessControlledModule", address(mockModule));
+
+        mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+        moduleRegistry.registerModule("MockModule2", address(mockModule2));
     }
 
     // call only ipAccount function with an ipAccount
@@ -236,4 +241,103 @@ contract AccessControlledTest is BaseTest {
             "MockAccessControlledModule"
         );
     }
+
+    ////////////////// Global Permission Tests //////////////////
+
+    // function test_Governance_setGlobalPermissionSuccess() public {
+        
+    //     vm.startPrank(u.admin);
+    //     accessController.setGlobalPermission(
+    //         address(mockModule),
+    //         address(mockModule2),
+    //         bytes4(0),
+    //         AccessPermission.ALLOW
+    //     );
+    //     assertEq(
+    //         accessController.getPermission(address(0), address(mockModule), address(mockModule2), bytes4(0)),
+    //         AccessPermission.ALLOW
+    //     );
+    // }
+
+    // function test_Governance_revert_setGlobalPermissionNonAdmin() public {
+    //     vm.prank(address(0x777));
+    //     vm.expectRevert(abi.encodeWithSignature("AccessManagedUnauthorized(address)", address(0x777)));
+    //     accessController.setGlobalPermission(
+    //         address(mockModule),
+    //         address(mockModule2),
+    //         bytes4(0),
+    //         AccessPermission.ALLOW
+    //     );
+    // }
+
+    // function test_Governance_setGlobalPermissionWithNewAdmin() public {
+    //     address newAdmin = vm.addr(3);
+
+    //     vm.startPrank(u.admin);
+    //     governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin, 0);
+
+    //     vm.startPrank(newAdmin);
+    //     accessController.setGlobalPermission(
+    //         address(mockModule),
+    //         address(mockModule2),
+    //         bytes4(0),
+    //         AccessPermission.ALLOW
+    //     );
+    // }
+
+    // function test_Governance_revert_setGlobalPermissionWithOldAdmin() with public {
+    //     MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+    //     address newAdmin = vm.addr(3);
+
+    //     vm.startPrank(u.admin);
+    //     moduleRegistry.registerModule("MockModule2", address(mockModule2));
+
+    //     governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin, 0);
+    //     governance.revokeRole(GovernanceLib.PROTOCOL_ADMIN, u.admin);
+    //     vm.stopPrank();
+
+    //     vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
+    //     accessController.setGlobalPermission(
+    //         address(mockModule),
+    //         address(mockModule2),
+    //         bytes4(0),
+    //         AccessPermission.ALLOW
+    //     );
+    // }
+
+    // function test_Governance_setGlobalPermissionWithNewGov() public {
+    //     MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+    //     address newAdmin = vm.addr(3);
+    //     Governance newGovernance = _deployGovernance(newAdmin);
+
+    //     vm.startPrank(u.admin);
+    //     moduleRegistry.registerModule("MockModule2", address(mockModule2));
+    //     Governable(address(accessController)).setAuthority(address(newGovernance));
+
+    //     vm.startPrank(newAdmin);
+    //     accessController.setGlobalPermission(
+    //         address(mockModule),
+    //         address(mockModule2),
+    //         bytes4(0),
+    //         AccessPermission.ALLOW
+    //     );
+    // }
+
+    // function test_Governance_revert_setGlobalPermissionWithOldGov() public {
+    //     MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+    //     address newAdmin = vm.addr(3);
+    //     Governance newGovernance = _deployGovernance(newAdmin);
+
+    //     vm.startPrank(u.admin);
+    //     moduleRegistry.registerModule("MockModule2", address(mockModule2));
+    //     IAccessManaged(address(moduleRegistry)).setAuthority(address(newGovernance));
+
+    //     vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
+    //     accessController.setGlobalPermission(
+    //         address(mockModule),
+    //         address(mockModule2),
+    //         bytes4(0),
+    //         AccessPermission.ALLOW
+    //     );
+    // }
 }

@@ -69,7 +69,7 @@ contract RoyaltyModule is
     /// @notice Sets the license registry
     /// @dev Enforced to be only callable by the protocol admin
     /// @param licensing The address of the license registry
-    function setLicensingModule(address licensing) external onlyProtocolAdmin {
+    function setLicensingModule(address licensing) external restricted {
         if (licensing == address(0)) revert Errors.RoyaltyModule__ZeroLicensingModule();
         _getRoyaltyModuleStorage().licensingModule = licensing;
     }
@@ -78,7 +78,7 @@ contract RoyaltyModule is
     /// @dev Enforced to be only callable by the protocol admin
     /// @param royaltyPolicy The address of the royalty policy
     /// @param allowed Indicates if the royalty policy is whitelisted or not
-    function whitelistRoyaltyPolicy(address royaltyPolicy, bool allowed) external onlyProtocolAdmin {
+    function whitelistRoyaltyPolicy(address royaltyPolicy, bool allowed) external restricted {
         if (royaltyPolicy == address(0)) revert Errors.RoyaltyModule__ZeroRoyaltyPolicy();
 
         RoyaltyModuleStorage storage $ = _getRoyaltyModuleStorage();
@@ -91,7 +91,7 @@ contract RoyaltyModule is
     /// @dev Enforced to be only callable by the protocol admin
     /// @param token The token address
     /// @param allowed Indicates if the token is whitelisted or not
-    function whitelistRoyaltyToken(address token, bool allowed) external onlyProtocolAdmin {
+    function whitelistRoyaltyToken(address token, bool allowed) external restricted {
         if (token == address(0)) revert Errors.RoyaltyModule__ZeroRoyaltyToken();
 
         RoyaltyModuleStorage storage $ = _getRoyaltyModuleStorage();
@@ -245,7 +245,7 @@ contract RoyaltyModule is
 
     /// @notice Hook that is called before any upgrade for authorization
     /// @param newImplementation Address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyProtocolAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal override restricted {}
 
     /// @dev Returns the storage struct of RoyaltyModule.
     function _getRoyaltyModuleStorage() private pure returns (RoyaltyModuleStorage storage $) {

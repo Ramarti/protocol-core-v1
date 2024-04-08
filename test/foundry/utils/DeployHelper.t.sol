@@ -189,7 +189,10 @@ contract DeployHelper is Test {
 
     function _deployAccessConditionally(DeployAccessCondition memory d) public {
         if (d.governance) {
-            governance = new Governance(governanceAdmin);
+            address impl = address(new Governance());
+            governance = Governance(
+                TestProxyHelper.deployUUPSProxy(impl, abi.encodeCall(Governance.initialize, governanceAdmin))
+            );
             console2.log("DeployHelper: Using REAL Governance");
         }
         if (d.accessController) {

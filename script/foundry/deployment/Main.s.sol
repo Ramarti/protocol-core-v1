@@ -143,13 +143,16 @@ contract Main is Script, BroadcastManager, JsonDeploymentHandler, StorageLayoutC
 
         contractKey = "Governance";
         _predeploy(contractKey);
-        governance = new Governance(accessControlDeployer);
+        address impl = address(new Governance());
+        governance = Governance(
+            TestProxyHelper.deployUUPSProxy(impl, abi.encodeCall(Governance.initialize, address(accessControlDeployer)))
+        );
         _postdeploy(contractKey, address(governance));
 
         contractKey = "AccessController";
         _predeploy(contractKey);
 
-        address impl = address(new AccessController());
+        impl = address(new AccessController());
         accessController = AccessController(
             TestProxyHelper.deployUUPSProxy(impl, abi.encodeCall(AccessController.initialize, address(governance)))
         );

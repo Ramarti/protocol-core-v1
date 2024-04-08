@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.23;
 
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
+import { IAccessManager } from "@openzeppelin/contracts/access/manager/IAccessManager.sol";
 
 import { GovernanceLib } from "../../lib/GovernanceLib.sol";
 
 /// @title IGovernance
 /// @dev This interface defines the governance functionality for the protocol.
-interface IGovernance is IAccessControl {
+interface IGovernance is IAccessManager {
     /// @notice Emitted when the protocol state is set
     /// @param account The address that triggered the state change
     /// @param prevState The previous state of the protocol

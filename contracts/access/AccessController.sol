@@ -63,7 +63,7 @@ contract AccessController is IAccessController, GovernableUpgradeable, UUPSUpgra
     /// @dev TODO: figure out how to set these addresses in the constructor to make them immutable
     /// @param ipAccountRegistry address of the IP account registry
     /// @param moduleRegistry address of the module registry
-    function setAddresses(address ipAccountRegistry, address moduleRegistry) external onlyProtocolAdmin {
+    function setAddresses(address ipAccountRegistry, address moduleRegistry) external restricted {
         AccessControllerStorage storage $ = _getAccessControllerStorage();
         $.ipAccountRegistry = ipAccountRegistry;
         $.moduleRegistry = moduleRegistry;
@@ -93,7 +93,7 @@ contract AccessController is IAccessController, GovernableUpgradeable, UUPSUpgra
     /// @param to The address that can be called by the `signer` (currently only modules can be `to`)
     /// @param func The function selector of `to` that can be called by the `signer` on behalf of the `ipAccount`
     /// @param permission The new permission level
-    function setGlobalPermission(address signer, address to, bytes4 func, uint8 permission) external onlyProtocolAdmin {
+    function setGlobalPermission(address signer, address to, bytes4 func, uint8 permission) external restricted {
         if (signer == address(0)) {
             revert Errors.AccessController__SignerIsZeroAddress();
         }
@@ -248,5 +248,5 @@ contract AccessController is IAccessController, GovernableUpgradeable, UUPSUpgra
 
     /// @dev Hook to authorize the upgrade according to UUPSUgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyProtocolAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }

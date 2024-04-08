@@ -95,7 +95,7 @@ contract RoyaltyPolicyLAP is IRoyaltyPolicyLAP, GovernableUpgradeable, Reentranc
     /// @dev Set the snapshot interval
     /// @dev Enforced to be only callable by the protocol admin in governance
     /// @param timestampInterval The minimum timestamp interval between snapshots
-    function setSnapshotInterval(uint256 timestampInterval) public onlyProtocolAdmin {
+    function setSnapshotInterval(uint256 timestampInterval) public restricted {
         RoyaltyPolicyLAPStorage storage $ = _getRoyaltyPolicyLAPStorage();
         $.snapshotInterval = timestampInterval;
     }
@@ -103,7 +103,7 @@ contract RoyaltyPolicyLAP is IRoyaltyPolicyLAP, GovernableUpgradeable, Reentranc
     /// @dev Set the ip royalty vault beacon
     /// @dev Enforced to be only callable by the protocol admin in governance
     /// @param beacon The ip royalty vault beacon address
-    function setIpRoyaltyVaultBeacon(address beacon) public onlyProtocolAdmin {
+    function setIpRoyaltyVaultBeacon(address beacon) public restricted {
         if (beacon == address(0)) revert Errors.RoyaltyPolicyLAP__ZeroIpRoyaltyVaultBeacon();
         RoyaltyPolicyLAPStorage storage $ = _getRoyaltyPolicyLAPStorage();
         $.ipRoyaltyVaultBeacon = beacon;
@@ -365,5 +365,5 @@ contract RoyaltyPolicyLAP is IRoyaltyPolicyLAP, GovernableUpgradeable, Reentranc
 
     /// @dev Hook to authorize the upgrade according to UUPSUgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyProtocolAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }

@@ -81,7 +81,7 @@ contract LicenseRegistry is ILicenseRegistry, ERC1155Upgradeable, GovernableUpgr
     /// @dev Sets the DisputeModule address.
     /// @dev Enforced to be only callable by the protocol admin
     /// @param newDisputeModule The address of the DisputeModule
-    function setDisputeModule(address newDisputeModule) external onlyProtocolAdmin {
+    function setDisputeModule(address newDisputeModule) external restricted {
         if (newDisputeModule == address(0)) {
             revert Errors.LicenseRegistry__ZeroDisputeModule();
         }
@@ -92,7 +92,7 @@ contract LicenseRegistry is ILicenseRegistry, ERC1155Upgradeable, GovernableUpgr
     /// @dev Sets the LicensingModule address.
     /// @dev Enforced to be only callable by the protocol admin
     /// @param newLicensingModule The address of the LicensingModule
-    function setLicensingModule(address newLicensingModule) external onlyProtocolAdmin {
+    function setLicensingModule(address newLicensingModule) external restricted {
         if (newLicensingModule == address(0)) {
             revert Errors.LicenseRegistry__ZeroLicensingModule();
         }
@@ -103,7 +103,7 @@ contract LicenseRegistry is ILicenseRegistry, ERC1155Upgradeable, GovernableUpgr
     /// @dev Sets the Licensing Image URL.
     /// @dev Enforced to be only callable by the protocol admin
     /// @param url The URL of the Licensing Image
-    function setLicensingImageUrl(string calldata url) external onlyProtocolAdmin {
+    function setLicensingImageUrl(string calldata url) external restricted {
         LicenseRegistryStorage storage $ = _getLicenseRegistryStorage();
         $.imageUrl = url;
         emit BatchMetadataUpdate(1, $.mintedLicenses);
@@ -321,5 +321,5 @@ contract LicenseRegistry is ILicenseRegistry, ERC1155Upgradeable, GovernableUpgr
 
     /// @dev Hook to authorize the upgrade according to UUPSUgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyProtocolAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }

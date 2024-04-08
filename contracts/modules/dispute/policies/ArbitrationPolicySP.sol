@@ -83,7 +83,7 @@ contract ArbitrationPolicySP is IArbitrationPolicy, GovernableUpgradeable, UUPSU
 
     /// @notice Allows governance address to withdraw
     /// @dev Enforced to be only callable by the governance protocol admin.
-    function governanceWithdraw() external onlyProtocolAdmin {
+    function governanceWithdraw() external restricted {
         uint256 balance = IERC20(PAYMENT_TOKEN).balanceOf(address(this));
         IERC20(PAYMENT_TOKEN).safeTransfer(msg.sender, balance);
 
@@ -92,5 +92,5 @@ contract ArbitrationPolicySP is IArbitrationPolicy, GovernableUpgradeable, UUPSU
 
     /// @notice Hook that is called before any upgrade
     /// @param newImplementation Address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyProtocolAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }

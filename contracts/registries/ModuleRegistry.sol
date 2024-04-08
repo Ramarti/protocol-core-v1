@@ -52,7 +52,7 @@ contract ModuleRegistry is IModuleRegistry, GovernableUpgradeable, UUPSUpgradeab
     /// @dev Enforced to be only callable by the protocol admin in governance.
     /// @param name The name of the module type to be registered.
     /// @param interfaceId The interface ID associated with the module type.
-    function registerModuleType(string memory name, bytes4 interfaceId) external override onlyProtocolAdmin {
+    function registerModuleType(string memory name, bytes4 interfaceId) external override restricted {
         ModuleRegistryStorage storage $ = _getModuleRegistryStorage();
         if (interfaceId == 0) {
             revert Errors.ModuleRegistry__InterfaceIdZero();
@@ -69,7 +69,7 @@ contract ModuleRegistry is IModuleRegistry, GovernableUpgradeable, UUPSUpgradeab
     /// @notice Removes a module type from the registry.
     /// @dev Enforced to be only callable by the protocol admin in governance.
     /// @param name The name of the module type to be removed.
-    function removeModuleType(string memory name) external override onlyProtocolAdmin {
+    function removeModuleType(string memory name) external override restricted {
         if (bytes(name).length == 0) {
             revert Errors.ModuleRegistry__NameEmptyString();
         }
@@ -84,7 +84,7 @@ contract ModuleRegistry is IModuleRegistry, GovernableUpgradeable, UUPSUpgradeab
     /// @dev Enforced to be only callable by the protocol admin in governance.
     /// @param name The name of the module.
     /// @param moduleAddress The address of the module.
-    function registerModule(string memory name, address moduleAddress) external onlyProtocolAdmin {
+    function registerModule(string memory name, address moduleAddress) external restricted {
         _registerModule(name, moduleAddress, MODULE_TYPE_DEFAULT);
     }
 
@@ -96,14 +96,14 @@ contract ModuleRegistry is IModuleRegistry, GovernableUpgradeable, UUPSUpgradeab
         string memory name,
         address moduleAddress,
         string memory moduleType
-    ) external onlyProtocolAdmin {
+    ) external restricted {
         _registerModule(name, moduleAddress, moduleType);
     }
 
     /// @notice Removes a module from the registry.
     /// @dev Enforced to be only callable by the protocol admin in governance.
     /// @param name The name of the module.
-    function removeModule(string memory name) external onlyProtocolAdmin {
+    function removeModule(string memory name) external restricted {
         if (bytes(name).length == 0) {
             revert Errors.ModuleRegistry__NameEmptyString();
         }
@@ -195,5 +195,5 @@ contract ModuleRegistry is IModuleRegistry, GovernableUpgradeable, UUPSUpgradeab
 
     /// @dev Hook to authorize the upgrade according to UUPSUgradeable
     /// @param newImplementation The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyProtocolAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }

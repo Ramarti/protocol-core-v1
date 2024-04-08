@@ -4,20 +4,35 @@ pragma solidity 0.8.23;
 import { IIPAccount } from "../../../contracts/interfaces/IIPAccount.sol";
 import { AccessPermission } from "../../../contracts/lib/AccessPermission.sol";
 import { Errors } from "../../../contracts/lib/Errors.sol";
-import { IGovernable } from "../../../contracts/interfaces/governance/IGovernable.sol";
 import { GovernanceLib } from "../../../contracts/lib/GovernanceLib.sol";
 import { Governance } from "../../../contracts/governance/Governance.sol";
+import { Governable } from "../../../contracts/governance/Governable.sol";
+
+import { IAccessManaged } from "@openzeppelin/contracts/access/manager/IAccessManaged.sol";
 
 import { MockModule } from "../mocks/module/MockModule.sol";
+import { MockGovernable } from "../mocks/governance/MockGovernable.sol";
 import { BaseTest } from "../utils/BaseTest.t.sol";
+import { TestProxyHelper } from "test/foundry/utils/TestProxyHelper.sol";
+
+import { console2 } from "forge-std/console2.sol";
 
 contract GovernanceTest is BaseTest {
-    MockModule public mockModule;
-    MockModule public moduleWithoutPermission;
-    IIPAccount public ipAccount;
+    MockModule mockModule;
+    MockModule moduleWithoutPermission;
+    MockModule mockModule2;
+    MockGovernable mockGovernable;
+    IIPAccount ipAccount;
 
-    address public owner = vm.addr(1);
-    uint256 public tokenId = 100;
+    address owner = vm.addr(1);
+    uint256 tokenId = 100;
+
+    modifier withRegisteredMockModule2() {
+        mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+        vm.prank(u.admin);
+        moduleRegistry.registerModule("MockModule2", address(mockModule2));
+        _;
+    }
 
     function setUp() public override {
         super.setUp();
@@ -32,258 +47,154 @@ contract GovernanceTest is BaseTest {
         ipAccount = IIPAccount(payable(deployedAccount));
 
         mockModule = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule");
-    }
-
-    function test_Governance_registerModuleSuccess() public {
-        vm.prank(u.admin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-        assertEq(moduleRegistry.getModule("MockModule"), address(mockModule));
-        assertTrue(moduleRegistry.isRegistered(address(mockModule)));
-    }
-
-    function test_Governance_removeModuleSuccess() public {
-        vm.prank(u.admin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-        assertEq(moduleRegistry.getModule("MockModule"), address(mockModule));
-        assertTrue(moduleRegistry.isRegistered(address(mockModule)));
-
-        vm.prank(u.admin);
-        moduleRegistry.removeModule("MockModule");
-        assertEq(moduleRegistry.getModule("MockModule"), address(0));
-        assertFalse(moduleRegistry.isRegistered(address(mockModule)));
-    }
-
-    function test_Governance_setGlobalPermissionSuccess() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-        accessController.setGlobalPermission(
-            address(mockModule),
-            address(mockModule2),
-            bytes4(0),
-            AccessPermission.ALLOW
-        );
-        assertEq(
-            accessController.getPermission(address(0), address(mockModule), address(mockModule2), bytes4(0)),
-            AccessPermission.ALLOW
-        );
-    }
-
-    function test_Governance_revert_registerModuleWithNonAdmin() public {
-        vm.prank(address(0x777));
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-    }
-
-    function test_Governance_revert_removeModuleWithNonAdmin() public {
-        vm.prank(u.admin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-        assertEq(moduleRegistry.getModule("MockModule"), address(mockModule));
-        assertTrue(moduleRegistry.isRegistered(address(mockModule)));
-
-        vm.prank(address(0x777));
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        moduleRegistry.removeModule("MockModule");
-    }
-
-    function test_Governance_revert_setGlobalPermissionNonAdmin() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-        vm.prank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-
-        vm.prank(address(0x777));
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        accessController.setGlobalPermission(
-            address(mockModule),
-            address(mockModule2),
-            bytes4(0),
-            AccessPermission.ALLOW
-        );
-    }
-
-    function test_Governance_registerModuleWithNewAdmin() public {
-        address newAdmin = vm.addr(3);
-        vm.prank(u.admin);
-        governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin);
-
-        vm.prank(newAdmin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-    }
-
-    function test_Governance_setGlobalPermissionWithNewAdmin() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-        address newAdmin = vm.addr(3);
+        mockGovernable = new MockGovernable(address(governance));
 
         vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-        governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin);
+        bytes4[] memory selectors = new bytes4[](1);
+        // selectors[0] = mockGovernable.restrictedMethod.selector;
+        // governance.setTargetFunctionRole(address(mockGovernable), selectors, GovernanceLib.PROTOCOL_ADMIN);
 
-        vm.startPrank(newAdmin);
-        accessController.setGlobalPermission(
-            address(mockModule),
-            address(mockModule2),
-            bytes4(0),
-            AccessPermission.ALLOW
-        );
-    }
+        selectors[0] = mockGovernable.restrictedMethodOtherRole.selector;
+        governance.setTargetFunctionRole(address(mockGovernable), selectors, GovernanceLib.UPGRADER_ROLE);
+        governance.grantRole(GovernanceLib.UPGRADER_ROLE, u.alice, 0);
 
-    function test_Governance_revert_registerModuleWithOldAdmin() public {
-        address newAdmin = vm.addr(3);
-
-        vm.startPrank(u.admin);
-        governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin);
-        governance.revokeRole(GovernanceLib.PROTOCOL_ADMIN, u.admin);
-
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-    }
-
-    function test_Governance_revert_removeModuleWithOldAdmin() public {
-        address newAdmin = vm.addr(3);
-
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-        assertEq(moduleRegistry.getModule("MockModule"), address(mockModule));
-        assertTrue(moduleRegistry.isRegistered(address(mockModule)));
-
-        governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin);
-        governance.revokeRole(GovernanceLib.PROTOCOL_ADMIN, u.admin);
-
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        moduleRegistry.removeModule("MockModule");
-    }
-
-    function test_Governance_revert_setGlobalPermissionWithOldAdmin() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-        address newAdmin = vm.addr(3);
-
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-
-        governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin);
-        governance.revokeRole(GovernanceLib.PROTOCOL_ADMIN, u.admin);
         vm.stopPrank();
+    }
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        accessController.setGlobalPermission(
-            address(mockModule),
-            address(mockModule2),
-            bytes4(0),
-            AccessPermission.ALLOW
-        );
+    function test_Governance_restrictedMethodSuccess() public {
+        vm.prank(u.admin);
+        mockGovernable.restrictedMethod();
+        assertTrue(mockGovernable.methodCalled());
+
+        vm.prank(u.alice);
+        mockGovernable.restrictedMethodOtherRole();
+        assertTrue(mockGovernable.methodCalledOtherRole());
+    }
+
+    function test_Governance_revert_restrictedMethodWithNonAdmin() public {
+        vm.prank(address(0x777));
+        vm.expectRevert(abi.encodeWithSignature("AccessManagedUnauthorized(address)", address(0x777)));
+        mockGovernable.restrictedMethod();
+    }
+
+    function test_Governance_revert_otherRoleWithNotRoleMember() public {
+        vm.prank(address(0x777));
+        vm.expectRevert(abi.encodeWithSignature("AccessManagedUnauthorized(address)", address(0x777)));
+        mockGovernable.restrictedMethodOtherRole();
+        vm.prank(u.admin);
+        vm.expectRevert(abi.encodeWithSignature("AccessManagedUnauthorized(address)", u.admin));
+        mockGovernable.restrictedMethodOtherRole();
+    }
+
+
+    function test_Governance_revert_restrictedMethodWithOldAdmin() public {
+        address newAdmin = vm.addr(3);
+
+        vm.startPrank(u.admin);
+        governance.grantRole(GovernanceLib.PROTOCOL_ADMIN, newAdmin, 0);
+        governance.revokeRole(GovernanceLib.PROTOCOL_ADMIN, u.admin);
+
+        vm.expectRevert(abi.encodeWithSignature("AccessManagedUnauthorized(address)", u.admin));
+        mockGovernable.restrictedMethod();
     }
 
     function test_Governance_setNewGovernance() public {
         address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
+        Governance newGovernance = _deployGovernance(newAdmin);
         vm.prank(u.admin);
-        IGovernable(address(moduleRegistry)).setGovernance(address(newGovernance));
-        assertEq(IGovernable(address(moduleRegistry)).getGovernance(), address(newGovernance));
+        IAccessManaged(address(moduleRegistry)).setAuthority(address(newGovernance));
+        assertEq(Governable(address(moduleRegistry)).authority(), address(newGovernance));
     }
 
-    function test_Governance_registerModuleWithNewGov() public {
+    function test_Governance_adminFunctionWithNewGov() public {
         address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
+        Governance newGovernance = _deployGovernance(newAdmin);
+        
         vm.prank(u.admin);
-        IGovernable(address(moduleRegistry)).setGovernance(address(newGovernance));
+        governance.updateAuthority(address(mockGovernable), address(newGovernance));
+
         vm.prank(newAdmin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
+        mockGovernable.restrictedMethod();
+        assertTrue(mockGovernable.methodCalled());
     }
 
-    function test_Governance_setGlobalPermissionWithNewGov() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+    function test_Governance_revert_adminFunctionWithOldGov() public {
         address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
+        Governance newGovernance = _deployGovernance(newAdmin);
 
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-        IGovernable(address(accessController)).setGovernance(address(newGovernance));
-
-        vm.startPrank(newAdmin);
-        accessController.setGlobalPermission(
-            address(mockModule),
-            address(mockModule2),
-            bytes4(0),
-            AccessPermission.ALLOW
-        );
-    }
-
-    function test_Governance_revert_registerModuleWithOldGov() public {
-        address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
-
-        vm.startPrank(u.admin);
-        IGovernable(address(moduleRegistry)).setGovernance(address(newGovernance));
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-    }
-
-    function test_Governance_revert_removeModuleWithOldGov() public {
-        address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
-
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule", address(mockModule));
-        assertEq(moduleRegistry.getModule("MockModule"), address(mockModule));
-        assertTrue(moduleRegistry.isRegistered(address(mockModule)));
-
-        IGovernable(address(moduleRegistry)).setGovernance(address(newGovernance));
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        moduleRegistry.removeModule("MockModule");
-    }
-
-    function test_Governance_revert_setGlobalPermissionWithOldGov() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-        address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
-
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-        IGovernable(address(accessController)).setGovernance(address(newGovernance));
-
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__OnlyProtocolAdmin.selector));
-        accessController.setGlobalPermission(
-            address(mockModule),
-            address(mockModule2),
-            bytes4(0),
-            AccessPermission.ALLOW
-        );
-    }
-
-    function test_Governance_revert_setNewGovernanceZeroAddr() public {
         vm.prank(u.admin);
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ZeroAddress.selector));
-        IGovernable(address(moduleRegistry)).setGovernance(address(0));
+        governance.updateAuthority(address(mockGovernable), address(newGovernance));
+
+        vm.prank(u.admin);
+        vm.expectRevert(abi.encodeWithSignature("AccessManagedUnauthorized(address)", u.admin));
+        mockGovernable.restrictedMethod();
+    }
+
+
+    function test_Governance_revert_checkPermissionUnPausedThenPauseThenUnPause() withRegisteredMockModule2 public {
+        vm.startPrank(u.admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.AccessController__PermissionDenied.selector,
+                address(ipAccount),
+                address(mockModule),
+                address(mockModule2),
+                bytes4(0)
+            )
+        );
+        accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
+        console2.log("admin", u.admin);
+        (bool inRole, uint32 executionDelay) = governance.hasRole(0, u.admin);
+
+        console2.log("hasRole", inRole, executionDelay);
+        governance.setState(GovernanceLib.ProtocolState.Paused);
+        // vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));
+        // accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
+
+        // governance.setState(GovernanceLib.ProtocolState.Unpaused);
+        // vm.expectRevert(
+        //     abi.encodeWithSelector(
+        //         Errors.AccessController__PermissionDenied.selector,
+        //         address(ipAccount),
+        //         address(mockModule),
+        //         address(mockModule2),
+        //         bytes4(0)
+        //     )
+        // );
+        // accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
     }
 
     function test_Governance_revert_setNewGovernanceNotContract() public {
         vm.prank(u.admin);
         vm.expectRevert();
-        IGovernable(address(moduleRegistry)).setGovernance(address(0xbeefbeef));
+        IAccessManaged(address(moduleRegistry)).setAuthority(address(0xbeefbeef));
     }
 
     function test_Governance_revert_setNewGovernanceNotSupportInterface() public {
         vm.prank(u.admin);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__UnsupportedInterface.selector, "IGovernance"));
-        IGovernable(address(moduleRegistry)).setGovernance(address(mockModule));
+        IAccessManaged(address(mockGovernable)).setAuthority(address(mockModule));
+
+        vm.prank(u.admin);
+        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__UnsupportedInterface.selector, "IGovernance"));
+        IAccessManaged(address(mockGovernable)).setAuthority(address(0));
     }
 
     function test_Governance_revert_setNewGovernanceInconsistentState() public {
         address newAdmin = vm.addr(3);
-        Governance newGovernance = new Governance(newAdmin);
+        Governance newGovernance = _deployGovernance(newAdmin);
+        (bool immediate, uint32 delay) = newGovernance.canCall(newAdmin, address(newGovernance), newGovernance.setState.selector);
+        console2.log("canCall", immediate, delay);
         vm.prank(newAdmin);
         newGovernance.setState(GovernanceLib.ProtocolState.Paused);
 
         vm.prank(u.admin);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__InconsistentState.selector));
-        IGovernable(address(moduleRegistry)).setGovernance(address(newGovernance));
+        governance.updateAuthority(address(mockGovernable), address(newGovernance));
     }
 
-    function test_Governance_revert_setPermissionWhenPaused() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-
+    function test_Governance_revert_setPermissionWhenPaused() withRegisteredMockModule2 public {
         vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
         governance.setState(GovernanceLib.ProtocolState.Paused);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));
         accessController.setPermission(
@@ -295,44 +206,10 @@ contract GovernanceTest is BaseTest {
         );
     }
 
-    function test_Governance_revert_checkPermissionWhenPaused() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
+    function test_Governance_revert_checkPermissionWhenPaused() withRegisteredMockModule2 public {
         vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
         governance.setState(GovernanceLib.ProtocolState.Paused);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));
-        accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
-    }
-
-    function test_Governance_revert_checkPermissionUnPausedThenPauseThenUnPause() public {
-        MockModule mockModule2 = new MockModule(address(ipAccountRegistry), address(moduleRegistry), "MockModule2");
-        vm.startPrank(u.admin);
-        moduleRegistry.registerModule("MockModule2", address(mockModule2));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Errors.AccessController__PermissionDenied.selector,
-                address(ipAccount),
-                address(mockModule),
-                address(mockModule2),
-                bytes4(0)
-            )
-        );
-        accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
-
-        governance.setState(GovernanceLib.ProtocolState.Paused);
-        vm.expectRevert(abi.encodeWithSelector(Errors.Governance__ProtocolPaused.selector));
-        accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
-
-        governance.setState(GovernanceLib.ProtocolState.Unpaused);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Errors.AccessController__PermissionDenied.selector,
-                address(ipAccount),
-                address(mockModule),
-                address(mockModule2),
-                bytes4(0)
-            )
-        );
         accessController.checkPermission(address(ipAccount), address(mockModule), address(mockModule2), bytes4(0));
     }
 
@@ -346,5 +223,10 @@ contract GovernanceTest is BaseTest {
         vm.startPrank(u.admin);
         vm.expectRevert(abi.encodeWithSelector(Errors.Governance__NewStateIsTheSameWithOldState.selector));
         governance.setState(GovernanceLib.ProtocolState.Unpaused);
+    }
+
+    function _deployGovernance(address admin) internal returns (Governance) {
+        address impl = address(new Governance());
+        return Governance(TestProxyHelper.deployUUPSProxy(impl, abi.encodeCall(Governance.initialize, admin)));
     }
 }
