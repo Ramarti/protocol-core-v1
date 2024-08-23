@@ -30,9 +30,11 @@ contract IPAssetRegistry is IIPAssetRegistry, IPAccountRegistry, ProtocolPausabl
 
     /// @dev Storage structure for the IPAssetRegistry
     /// @notice Tracks the total number of IP assets in existence.
+    /// @notice Tracks the registration fee required to register an IP asset. Set to 0 by default.
     /// @custom:storage-location erc7201:story-protocol.IPAssetRegistry
     struct IPAssetRegistryStorage {
         uint256 totalSupply;
+        uint256 registrationFee;
     }
 
     // keccak256(abi.encode(uint256(keccak256("story-protocol.IPAssetRegistry")) - 1)) & ~bytes32(uint256(0xff));
@@ -64,7 +66,11 @@ contract IPAssetRegistry is IIPAssetRegistry, IPAccountRegistry, ProtocolPausabl
         uint256 chainid,
         address tokenContract,
         uint256 tokenId
-    ) external whenNotPaused returns (address id) {
+    ) external whenNotPaused payable returns (address id) {
+        // Protocol registration fee zero by default
+        if (msg.value != _getIPAssetRegistryStorage().registrationFee) {
+            revert Errors.IPAssetRegistry__InvalidRegistrationFee();
+        }
         id = _registerIpAccount(chainid, tokenContract, tokenId);
         IIPAccount ipAccount = IIPAccount(payable(id));
 
@@ -108,6 +114,18 @@ contract IPAssetRegistry is IIPAssetRegistry, IPAccountRegistry, ProtocolPausabl
     /// @notice Gets the total number of IP assets registered in the protocol.
     function totalSupply() external view returns (uint256) {
         return _getIPAssetRegistryStorage().totalSupply;
+    }
+
+    /// @notice Sets the registration fee required to register an IP asset.
+    /// @param fee The registration fee to set.
+    function setRegistrationFee(uint256 fee) external restricted {
+        _getIPAssetRegistryStorage().registrationFee = fee;
+        emit RegistrationFeeSet(fee);
+    }
+
+    /// @notice Gets the registration fee required to register an IP asset.
+    function registrationFee() external view returns (uint256) {
+        return _getIPAssetRegistryStorage().registrationFee;
     }
 
     /// @dev Retrieves the name and URI of from IP NFT.

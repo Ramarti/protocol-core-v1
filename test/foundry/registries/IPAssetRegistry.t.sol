@@ -11,6 +11,7 @@ import { ShortStrings } from "@openzeppelin/contracts/utils/ShortStrings.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { MockERC721WithoutMetadata } from "test/foundry/mocks/token/MockERC721WithoutMetadata.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { IAccessManaged } from "@openzeppelin/contracts/access/manager/IAccessManaged.sol";
 
 import { BaseTest } from "../utils/BaseTest.t.sol";
 
@@ -215,6 +216,37 @@ contract IPAssetRegistryTest is BaseTest {
 
         vm.expectRevert(Errors.IPAssetRegistry__AlreadyRegistered.selector);
         registry.register(chainid, tokenAddress, tokenId);
+    }
+
+    function test_IPAssetRegistry_feeSwitch_setting() public {
+        assertEq(registry.registrationFee(), 0);
+        vm.prank(u.admin);
+        registry.setRegistrationFee(100);
+        assertEq(registry.registrationFee(), 100);
+    }
+
+    function test_IPAssetRegistry_feeSwitch_revert_notAdmin() public {
+        vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, address(this)));
+        registry.setRegistrationFee(100);
+    }
+
+    function test_IPAssetRegistry_feeSwitch_payFee() public {
+        vm.prank(u.admin);
+        registry.setRegistrationFee(100);
+
+        address ipa = registry.register{ value: 100 }(block.chainid, tokenAddress, tokenId);
+        assertEq(registry.isRegistered(ipa), true);
+    }
+
+    function test_IPAssetRegistry_feeSwitch_payFee_revert() public {
+        vm.prank(u.admin);
+        registry.setRegistrationFee(100);
+
+        vm.expectRevert(Errors.IPAssetRegistry__InvalidRegistrationFee.selector);
+        registry.register{ value: 1 }(block.chainid, tokenAddress, tokenId);
+
+        vm.expectRevert(Errors.IPAssetRegistry__InvalidRegistrationFee.selector);
+        registry.register{ value: 1 ether }(block.chainid, tokenAddress, tokenId);
     }
 
     /// @notice Helper function for generating an account address.

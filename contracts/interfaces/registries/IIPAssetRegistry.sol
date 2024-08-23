@@ -24,6 +24,9 @@ interface IIPAssetRegistry is IIPAccountRegistry {
         uint256 registrationDate
     );
 
+    /// @notice Emits when the registration fee is set.
+    event RegistrationFeeSet(uint256 fee);
+
     /// @notice Tracks the total number of IP assets in existence.
     function totalSupply() external view returns (uint256);
 
@@ -32,7 +35,7 @@ interface IIPAssetRegistry is IIPAccountRegistry {
     /// @param tokenContract The address of the NFT.
     /// @param tokenId The token identifier of the NFT.
     /// @return id The address of the newly registered IP.
-    function register(uint256 chainid, address tokenContract, uint256 tokenId) external returns (address id);
+    function register(uint256 chainid, address tokenContract, uint256 tokenId) payable external returns (address id);
 
     /// @notice Gets the canonical IP identifier associated with an IP NFT.
     /// @dev This is equivalent to the address of its bound IP account.
@@ -46,4 +49,11 @@ interface IIPAssetRegistry is IIPAccountRegistry {
     /// @param id The canonical identifier for the IP.
     /// @return isRegistered Whether the IP was registered into the protocol.
     function isRegistered(address id) external view returns (bool);
+
+    /// @notice Sets the registration fee required to register an IP asset.
+    /// @param fee The registration fee to set.
+    function setRegistrationFee(uint256 fee) external;
+
+    /// @notice Gets the registration fee required to register an IP asset.
+    function registrationFee() external view returns (uint256);
 }

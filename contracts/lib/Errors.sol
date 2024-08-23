@@ -79,6 +79,9 @@ library Errors {
     /// @notice The NFT token id does not exist or invalid.
     error IPAssetRegistry__InvalidToken(address contractAddress, uint256 tokenId);
 
+    /// @notice The IP asset has not been registered.
+    error IPAssetRegistry__InvalidRegistrationFee();
+
     ////////////////////////////////////////////////////////////////////////////
     //                            License Registry                            //
     ////////////////////////////////////////////////////////////////////////////
