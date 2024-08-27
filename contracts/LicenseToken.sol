@@ -16,6 +16,7 @@ import { Errors } from "./lib/Errors.sol";
 import { ILicenseTemplate } from "./interfaces/modules/licensing/ILicenseTemplate.sol";
 
 /// @title LicenseToken aka LNFT
+/// @custom:oz-upgrades-from contracts/old/v1.1.1.sol:LicenseToken_v1_1_1
 contract LicenseToken is ILicenseToken, ERC721EnumerableUpgradeable, AccessManagedUpgradeable, UUPSUpgradeable {
     using Strings for *;
 

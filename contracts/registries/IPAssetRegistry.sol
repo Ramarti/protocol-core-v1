@@ -24,6 +24,7 @@ import { IPAccountStorageOps } from "../lib/IPAccountStorageOps.sol";
 ///         attribution and an IP account for protocol authorization.
 ///         IMPORTANT: The IP account address, besides being used for protocol
 ///                    auth, is also the canonical IP identifier for the IP NFT.
+/// @custom:oz-upgrades-from contracts/old/v1.1.1.sol:IPAssetRegistry_v1_1_1
 contract IPAssetRegistry is
     IIPAssetRegistry,
     IPAccountRegistry,

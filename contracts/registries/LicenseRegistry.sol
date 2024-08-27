@@ -22,6 +22,7 @@ import { IPGraphACL } from "../access/IPGraphACL.sol";
 
 /// @title LicenseRegistry aka LNFT
 /// @notice Registry of License NFTs, which represent licenses granted by IP ID licensors to create derivative IPs.
+/// @custom:oz-upgrades-from contracts/old/v1.1.1.sol:LicenseRegistry_v1_1_1
 contract LicenseRegistry is ILicenseRegistry, AccessManagedUpgradeable, UUPSUpgradeable {
     using Strings for *;
     using ERC165Checker for address;
