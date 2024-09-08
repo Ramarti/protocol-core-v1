@@ -82,7 +82,8 @@ contract BaseTest is Test, DeployHelper, LicensingHelper {
         super.run(
             CREATE3_DEFAULT_SEED,
             false, // runStorageLayoutCheck
-            false // writeDeploys
+            false, // writeDeploys
+            "test"
         );
 
         initLicensingHelper(address(pilTemplate), address(royaltyPolicyLAP), address(erc20));

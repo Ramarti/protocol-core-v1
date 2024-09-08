@@ -123,6 +123,8 @@ contract DeployHelper is Script, BroadcastManager, JsonDeploymentHandler, Storag
     // DeployHelper variable
     bool private writeDeploys;
 
+    string private version;
+
     constructor(
         address erc6551Registry_,
         address create3Deployer_,
@@ -150,7 +152,7 @@ contract DeployHelper is Script, BroadcastManager, JsonDeploymentHandler, Storag
     /// @dev To use, run the following command (e.g. for Sepolia):
     /// forge script script/foundry/deployment/Main.s.sol:Main --rpc-url $RPC_URL --broadcast --verify -vvvv
 
-    function run(uint256 create3SaltSeed_, bool runStorageLayoutCheck, bool writeDeploys_) public virtual {
+    function run(uint256 create3SaltSeed_, bool runStorageLayoutCheck, bool writeDeploys_, string memory version) public virtual {
         create3SaltSeed = create3SaltSeed_;
         writeDeploys = writeDeploys_;
 
@@ -179,7 +181,7 @@ contract DeployHelper is Script, BroadcastManager, JsonDeploymentHandler, Storag
             revert RoleConfigError("Multisig roles not granted");
         }
 
-        if (writeDeploys) _writeDeployment();
+        if (writeDeploys) _writeDeployment(version);
         _endBroadcast(); // BroadcastManager.s.sol
     }
 
