@@ -152,7 +152,7 @@ contract DeployHelper is Script, BroadcastManager, JsonDeploymentHandler, Storag
     /// @dev To use, run the following command (e.g. for Sepolia):
     /// forge script script/foundry/deployment/Main.s.sol:Main --rpc-url $RPC_URL --broadcast --verify -vvvv
 
-    function run(uint256 create3SaltSeed_, bool runStorageLayoutCheck, bool writeDeploys_, string memory version) public virtual {
+    function run(uint256 create3SaltSeed_, bool runStorageLayoutCheck, bool writeDeploys_) public virtual {
         create3SaltSeed = create3SaltSeed_;
         writeDeploys = writeDeploys_;
 
