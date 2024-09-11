@@ -28,7 +28,7 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
     uint256 internal CREATE3_DEFAULT_SEED = 0;
     // PROXY 1967 IMPLEMENTATION STORAGE SLOTS
     bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
-    enum UpgradeModes { SCHEDULE, EXECUTE }
+    enum UpgradeModes { SCHEDULE, EXECUTE, CANCEL }
     enum Output {
         TX_EXECUTION, // One Tx per schedule/execute
         BATCH_TX_EXECUTION, // Use AccessManager to batch txs (multicall)
@@ -47,6 +47,34 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
     string toVersion;
 
     bytes[] multicallData;
+
+    modifier onlyMatchingAccessManager(address proxy) {
+        require(
+            AccessManaged(proxy).authority() == address(accessManager),
+            "Proxy's Authority must equal accessManager"
+        );
+        _;
+    }
+
+    modifier onlyUpgraderRole() {
+        (bool isMember, ) = accessManager.hasRole(ProtocolAdmin.UPGRADER_ROLE, deployer);
+        require(isMember, "Caller must have Upgrader role");
+        _;
+    }
+
+    modifier onlyScheduled(UpgradedImplHelper.UpgradeProposal memory p) {
+        (bool immediate, uint32 delay) = accessManager.canCall(
+            deployer,
+            p.proxy,
+            UUPSUpgradeable.upgradeToAndCall.selector
+        );
+        console2.log("Can call upgradeToAndCall");
+        console2.log("Immediate", immediate);
+        console2.log("Delay", delay);
+
+        require(delay > 0, "Cannot schedule upgradeToAndCall");
+        _;
+    }
 
     constructor(string memory _fromVersion, string memory _toVersion, UpgradeModes _mode, Output _outputType) JsonDeploymentHandler("main") JsonBatchTxHelper() {
         create3Deployer = ICreate3Deployer(CREATE3_DEPLOYER);
@@ -72,8 +100,10 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
         }
         if (mode == UpgradeModes.SCHEDULE) {
             _scheduleUpgrades();
-        } else {
+        } else if (mode == UpgradeModes.EXECUTE) {
             _executeUpgrades();
+        } else if (mode == UpgradeModes.CANCEL) {
+            _cancelScheduledUpgrades();
         }
         if (outputType == Output.BATCH_TX_JSON) {
             string memory action;
@@ -81,6 +111,8 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
                 action = "schedule";
             } else if (mode == UpgradeModes.EXECUTE) {
                 action = "execute";
+            } else if (mode  == UpgradeModes.CANCEL) {
+                action = "cancel";
             } else {
                 revert("Invalid mode");
             }
@@ -89,8 +121,7 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
                     action, "-", fromVersion, "-to-", toVersion
                 )
             ); // JsonBatchTxHelper.s.sol
-        }
-        if (outputType == Output.BATCH_TX_EXECUTION) {
+        } else if (outputType == Output.BATCH_TX_EXECUTION) {
             _executeBatchTxs();
         }
         _endBroadcast(); // BroadcastManager.s.sol
@@ -105,46 +136,12 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
         console2.log("Scheduling", key);
         console2.log("Proxy", p.proxy);
         console2.log("New Impl", p.newImpl);
-        bytes memory data;
-        // IF the key is IpRoyaltyVault, we need to schedule upgradeVaults
-        if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked("IpRoyaltyVault"))) {
-            console2.log("Schedule upgradeVaults");
-            data = abi.encodeCall(
-                IVaultController.upgradeVaults, (p.newImpl)
-            );
-        } else {
-            // IF the key is something else, we need to schedule upgradeToAndCall
-            console2.log("Deployer", deployer);
-            (bool isMember, ) = accessManager.hasRole(ProtocolAdmin.UPGRADER_ROLE, deployer);
-            console2.log("Has Role Upgrader", isMember);
+        _scheduleUpgrade(key, p);
+        console2.log("--------------------");
+    }
 
-            console2.log(
-                "Authority equals accessManager?",
-                AccessManaged(p.proxy).authority(),
-                address(accessManager),
-                AccessManaged(p.proxy).authority() == address(accessManager)
-            );
-
-
-            (bool immediate, uint32 delay) = accessManager.canCall(
-                deployer,
-                p.proxy,
-                UUPSUpgradeable.upgradeToAndCall.selector
-            );
-            console2.log("Can call upgradeToAndCall");
-            console2.log("Immediate", immediate);
-            console2.log("Delay", delay);
-
-            if (delay == 0) {
-                revert("Cannot schedule upgradeToAndCall");
-            }
-            console2.log("Schedule upgradeUUPS");
-            data = abi.encodeCall(
-                UUPSUpgradeable.upgradeToAndCall,
-                (p.newImpl, "")
-            );
-
-        }
+    function _scheduleUpgrade(string memory key, UpgradedImplHelper.UpgradeProposal memory p) private onlyMatchingAccessManager(p.proxy) onlyUpgraderRole() {
+        bytes memory data = _getExecutionData(key, p);
         if (data.length == 0) {
             revert("No data to schedule");
         }
@@ -172,9 +169,8 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
                 abi.encodeCall(AccessManager.execute, (p.proxy, data))
             );
         } else {
-            _writeTx(address(accessManager), 0, abi.encodeCall(AccessManager.schedule, (p.proxy, data, 0)));
+            revert("Unsupported mode");
         }
-        console2.log("--------------------");
     }
 
     function _executeUpgrades() internal virtual;
@@ -185,34 +181,25 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
         console2.log("Upgrading", key);
         console2.log("Proxy", p.proxy);
         console2.log("New Impl", p.newImpl);
+        _executeUpgrade(key, p);
+    }
 
-        bytes memory data;
-        if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked("IpRoyaltyVault"))) {
-            console2.log("Execute upgradeVaults");
-            data = abi.encodeCall(
-                IVaultController.upgradeVaults, (p.newImpl)
-            );
-        } else {
-            console2.log("Execute upgradeToAndCall");
-            data = abi.encodeCall(
-                UUPSUpgradeable.upgradeToAndCall,
-                (p.newImpl, "")
-            );
-        }
+    function _executeUpgrade(string memory key, UpgradedImplHelper.UpgradeProposal memory p) private onlyMatchingAccessManager(p.proxy) {
+        bytes memory data = _getExecutionData(key, p);
         (uint48 schedule) = accessManager.getSchedule(accessManager.hashOperation(deployer, p.proxy, data));
         console2.log("schedule", schedule);
         console2.log("Execute scheduled tx");
         console2.logBytes(data);
     
         if (outputType == Output.TX_EXECUTION) {
-            console2.log("Executed tx");
-            // In this version, we don't have initializer calls. In other versions, we might need to store the bytes in JsonDeploymentHandler
+            console2.log("Execute upgrade tx");
+            // We don't currently support reinitializer calls
             accessManager.execute(
                 p.proxy,
                 data
             );
         } else if (outputType == Output.BATCH_TX_EXECUTION) {
-            console2.log("Adding tx to batch");
+            console2.log("Adding execution tx to batch");
             multicallData.push(abi.encodeCall(AccessManager.execute, (p.proxy, data)));
             console2.logBytes(multicallData[multicallData.length - 1]);
         } else if (outputType == Output.BATCH_TX_JSON) {
@@ -223,6 +210,44 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
             );
         } else {
             revert("Invalid output type");
+        }
+    }
+
+    function _cancelScheduledUpgrades() internal virtual;
+
+    function _cancelScheduledUpgrade(string memory key) internal {
+        console2.log("--------------------");
+        UpgradedImplHelper.UpgradeProposal memory p = _readUpgradeProposal(key);
+        console2.log("Scheduling", key);
+        console2.log("Proxy", p.proxy);
+        console2.log("New Impl", p.newImpl);
+        _cancelScheduledUpgrade(key, p);
+        console2.log("--------------------");
+    }
+
+    function _cancelScheduledUpgrade(string memory key, UpgradedImplHelper.UpgradeProposal memory p) private onlyMatchingAccessManager(p.proxy) {
+        bytes memory data = _getExecutionData(key, p);
+        if (data.length == 0) {
+            revert("No data to schedule");
+        }
+        if (outputType == Output.TX_EXECUTION) {
+            console2.log("Execute cancelation");
+            console2.logBytes(data);
+            (uint32 nonce) = accessManager.cancel(deployer, p.proxy, data);
+            console2.log("Cancelled", nonce);
+        } else if (outputType == Output.BATCH_TX_EXECUTION) {
+            console2.log("Adding cancel tx to batch");
+            multicallData.push(abi.encodeCall(AccessManager.cancel, (deployer, p.proxy, data)));
+            console2.logBytes(multicallData[multicallData.length - 1]);
+        } else if (outputType == Output.BATCH_TX_JSON) {
+            console2.log("------------ WARNING: NOT TESTED ------------");
+            _writeTx(
+                address(accessManager),
+                0,
+                abi.encodeCall(AccessManager.cancel, (deployer, p.proxy, data))
+            );
+        } else {
+            revert("Unsupported mode");
         }
     }
 
@@ -237,19 +262,19 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
         }
     }
 
-
-    /// @dev get the salt for the contract deployment with CREATE3
-    function _getSalt(string memory name) private view returns (bytes32 salt) {
-        salt = keccak256(abi.encode(name, CREATE3_DEFAULT_SEED));
-    }
-
-    /// @dev Get the deterministic deployed address of a contract with CREATE3
-    function _getDeployedAddress(string memory name) private view returns (address) {
-        return create3Deployer.getDeployed(_getSalt(name));
-    }
-
-    /// @dev Load the implementation address from the proxy contract
-    function _loadProxyImpl(address proxy) private view returns (address) {
-        return address(uint160(uint256(vm.load(proxy, IMPLEMENTATION_SLOT))));
+    function _getExecutionData(string memory key, UpgradedImplHelper.UpgradeProposal memory p) internal returns(bytes memory data) {
+        if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked("IpRoyaltyVault"))) {
+            console2.log("Schedule upgradeVaults");
+            data = abi.encodeCall(
+                IVaultController.upgradeVaults, (p.newImpl)
+            );
+        } else {            
+            console2.log("Schedule upgradeUUPS");
+            data = abi.encodeCall(
+                UUPSUpgradeable.upgradeToAndCall,
+                (p.newImpl, "")
+            );
+        }
+        return data;
     }
 }
