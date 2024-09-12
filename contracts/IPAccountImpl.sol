@@ -18,7 +18,7 @@ import { IPAccountStorage } from "./IPAccountStorage.sol";
 
 /// @title IPAccountImpl
 /// @notice The Story Protocol's implementation of the IPAccount.
-/// @dev This impl is not part of an upgradeable proxy/impl setup. We are 
+/// @dev This impl is not part of an upgradeable proxy/impl setup. We are
 /// adding OZ annotations to avoid false positives when running oz-foundry-upgrades
 contract IPAccountImpl is ERC6551, IPAccountStorage, IIPAccount {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable

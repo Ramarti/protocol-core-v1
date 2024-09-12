@@ -245,8 +245,6 @@ interface IDisputeModule {
     function isIpTagged(address ipId) external view returns (bool);
 }
 
-
-
 // contracts/old/v1.1.1/contracts/lib/ExpiringOps.sol
 
 library ExpiringOps {
@@ -412,7 +410,7 @@ library Address {
             revert AddressInsufficientBalance(address(this));
         }
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success, ) = recipient.call{ value: amount }("");
         if (!success) {
             revert FailedInnerCall();
         }
@@ -453,7 +451,7 @@ library Address {
         if (address(this).balance < value) {
             revert AddressInsufficientBalance(address(this));
         }
-        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{ value: value }(data);
         return verifyCallResultFromTarget(target, success, returndata);
     }
 
@@ -532,10 +530,7 @@ library Address {
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/StorageSlot.sol)
 // This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
 
-
-
 // node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol
-
 
 // node_modules/@openzeppelin/contracts/utils/math/Math.sol
 
@@ -3269,11 +3264,10 @@ library ERC165Checker {
  * This contract is only required for intermediate, library-like contracts.
  */
 abstract contract ContextUpgradeable is Initializable {
-    function __Context_init() internal onlyInitializing {
-    }
+    function __Context_init() internal onlyInitializing {}
 
-    function __Context_init_unchained() internal onlyInitializing {
-    }
+    function __Context_init_unchained() internal onlyInitializing {}
+
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
     }
@@ -4584,11 +4578,10 @@ abstract contract UUPSUpgradeable is Initializable, IERC1822Proxiable {
         _;
     }
 
-    function __UUPSUpgradeable_init() internal onlyInitializing {
-    }
+    function __UUPSUpgradeable_init() internal onlyInitializing {}
 
-    function __UUPSUpgradeable_init_unchained() internal onlyInitializing {
-    }
+    function __UUPSUpgradeable_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev Implementation of the ERC1822 {proxiableUUID} function. This returns the storage slot used by the
      * implementation. It is used to validate the implementation's compatibility when performing an upgrade.
@@ -5122,12 +5115,12 @@ abstract contract AccessManagedUpgradeable is Initializable, ContextUpgradeable,
     /// @custom:storage-location erc7201:openzeppelin.storage.AccessManaged
     struct AccessManagedStorage {
         address _authority;
-
         bool _consumingSchedule;
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.AccessManaged")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant AccessManagedStorageLocation = 0xf3177357ab46d8af007ab3fdb9af81da189e1068fefdc0073dca88a2cab40a00;
+    bytes32 private constant AccessManagedStorageLocation =
+        0xf3177357ab46d8af007ab3fdb9af81da189e1068fefdc0073dca88a2cab40a00;
 
     function _getAccessManagedStorage() private pure returns (AccessManagedStorage storage $) {
         assembly {
@@ -6395,19 +6388,14 @@ library Errors {
 
 // node_modules/@openzeppelin/contracts/access/manager/IAccessManaged.sol
 
-
-
 // node_modules/@openzeppelin/contracts/access/manager/IAuthority.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (access/manager/IAuthority.sol)
-
-
 
 // node_modules/@openzeppelin/contracts/interfaces/draft-IERC1822.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (interfaces/draft-IERC1822.sol)
 
- 
 // node_modules/erc6551/interfaces/IERC6551Registry.sol
 
 interface IERC6551Registry {
@@ -6458,6 +6446,7 @@ interface IERC6551Registry {
         uint256 tokenId
     ) external view returns (address account);
 }
+
 interface IIPAccountRegistry {
     /// @notice Event emitted when a new IP Account is created
     /// @param account The address of the new IP Account
@@ -6484,7 +6473,6 @@ interface IIPAccountRegistry {
     /// @return The address of the IPAccount implementation
     function getIPAccountImpl() external view returns (address);
 }
-
 
 // contracts/old/v1.1.1/contracts/interfaces/registries/IIPAssetRegistry.sol
 
@@ -6666,7 +6654,6 @@ interface IERC721 is IERC165 {
     function isApprovedForAll(address owner, address operator) external view returns (bool);
 }
 
-
 // node_modules/@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/extensions/IERC721Metadata.sol)
@@ -6694,12 +6681,9 @@ interface IERC721Metadata is IERC721 {
 
 // node_modules/@openzeppelin/contracts/utils/Strings.sol
 
-
 // node_modules/@openzeppelin/contracts/utils/types/Time.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/types/Time.sol)
-
-
 
 // node_modules/@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol
 
@@ -6721,7 +6705,8 @@ abstract contract PausableUpgradeable is Initializable, ContextUpgradeable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Pausable")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant PausableStorageLocation = 0xcd5ed15c6e187e77e9aee88184c21f4f2182ab5827cb3b7e07fbedcd63f03300;
+    bytes32 private constant PausableStorageLocation =
+        0xcd5ed15c6e187e77e9aee88184c21f4f2182ab5827cb3b7e07fbedcd63f03300;
 
     function _getPausableStorage() private pure returns (PausableStorage storage $) {
         assembly {
@@ -6838,7 +6823,6 @@ abstract contract PausableUpgradeable is Initializable, ContextUpgradeable {
     }
 }
 
-
 // contracts/old/v1.1.1/contracts/registries/IPAccountRegistry.sol
 
 /// @title IPAccountRegistry
@@ -6922,7 +6906,6 @@ abstract contract IPAccountRegistry is IIPAccountRegistry {
 // node_modules/@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/ERC1967/ERC1967Utils.sol)
-
 
 // node_modules/@openzeppelin/contracts-upgradeable/access/manager/AccessManagedUpgradeable.sol
 
@@ -7103,17 +7086,13 @@ contract IPAssetRegistry_V1_1_1 is IIPAssetRegistry, IPAccountRegistry, Protocol
 
 // contracts/old/v1.1.1/contracts/interfaces/modules/dispute/IDisputeModule.sol
 
-
 // contracts/old/v1.1.1/contracts/lib/Licensing.sol
 
 // node_modules/@openzeppelin/contracts/access/manager/IAccessManaged.sol
 
-
 // node_modules/@openzeppelin/contracts/access/manager/IAuthority.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (access/manager/IAuthority.sol)
-
-
 
 // node_modules/@openzeppelin/contracts/interfaces/draft-IERC1822.sol
 
@@ -7285,8 +7264,6 @@ interface IERC1155Errors {
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/beacon/IBeacon.sol)
 
-
-
 // node_modules/@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/IERC721Receiver.sol)
@@ -7318,7 +7295,6 @@ interface IERC721Receiver {
 // node_modules/@openzeppelin/contracts/utils/Address.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/Address.sol)
-
 
 // node_modules/@openzeppelin/contracts/utils/Base64.sol
 
@@ -7554,10 +7530,6 @@ library StorageSlot {
     }
 }
 
-
-
-
-
 // node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol
 
 // OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.s
@@ -7589,7 +7561,6 @@ interface IERC721Enumerable is IERC721 {
     function tokenByIndex(uint256 index) external view returns (uint256);
 }
 
-
 // node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/introspection/ERC165.sol)
@@ -7607,11 +7578,10 @@ interface IERC721Enumerable is IERC721 {
  * ```
  */
 abstract contract ERC165Upgradeable is Initializable, IERC165 {
-    function __ERC165_init() internal onlyInitializing {
-    }
+    function __ERC165_init() internal onlyInitializing {}
 
-    function __ERC165_init_unchained() internal onlyInitializing {
-    }
+    function __ERC165_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev See {IERC165-supportsInterface}.
      */
@@ -7619,7 +7589,6 @@ abstract contract ERC165Upgradeable is Initializable, IERC165 {
         return interfaceId == type(IERC165).interfaceId;
     }
 }
-
 
 // contracts/old/v1.1.1/contracts/interfaces/ILicenseToken.sol
 
@@ -7719,8 +7688,6 @@ interface ILicenseToken is IERC721Metadata, IERC721Enumerable {
     ) external view returns (address licenseTemplate, address[] memory licensorIpIds, uint256[] memory licenseTermsIds);
 }
 
-
-
 // node_modules/@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/ERC721.sol)
@@ -7730,23 +7697,25 @@ interface ILicenseToken is IERC721Metadata, IERC721Enumerable {
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {ERC721Enumerable}.
  */
-abstract contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeable, IERC721, IERC721Metadata, IERC721Errors {
+abstract contract ERC721Upgradeable is
+    Initializable,
+    ContextUpgradeable,
+    ERC165Upgradeable,
+    IERC721,
+    IERC721Metadata,
+    IERC721Errors
+{
     using Strings for uint256;
 
     /// @custom:storage-location erc7201:openzeppelin.storage.ERC721
     struct ERC721Storage {
         // Token name
         string _name;
-
         // Token symbol
         string _symbol;
-
         mapping(uint256 tokenId => address) _owners;
-
         mapping(address owner => uint256) _balances;
-
         mapping(uint256 tokenId => address) _tokenApprovals;
-
         mapping(address owner => mapping(address operator => bool)) _operatorApprovals;
     }
 
@@ -7775,7 +7744,9 @@ abstract contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, IERC165) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165Upgradeable, IERC165) returns (bool) {
         return
             interfaceId == type(IERC721).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
@@ -8239,13 +8210,13 @@ abstract contract ERC721EnumerableUpgradeable is Initializable, ERC721Upgradeabl
     struct ERC721EnumerableStorage {
         mapping(address owner => mapping(uint256 index => uint256)) _ownedTokens;
         mapping(uint256 tokenId => uint256) _ownedTokensIndex;
-
         uint256[] _allTokens;
         mapping(uint256 tokenId => uint256) _allTokensIndex;
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ERC721Enumerable")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ERC721EnumerableStorageLocation = 0x645e039705490088daad89bae25049a34f4a9072d398537b1ab2425f24cbed00;
+    bytes32 private constant ERC721EnumerableStorageLocation =
+        0x645e039705490088daad89bae25049a34f4a9072d398537b1ab2425f24cbed00;
 
     function _getERC721EnumerableStorage() private pure returns (ERC721EnumerableStorage storage $) {
         assembly {
@@ -8265,15 +8236,16 @@ abstract contract ERC721EnumerableUpgradeable is Initializable, ERC721Upgradeabl
      */
     error ERC721EnumerableForbiddenBatchMint();
 
-    function __ERC721Enumerable_init() internal onlyInitializing {
-    }
+    function __ERC721Enumerable_init() internal onlyInitializing {}
 
-    function __ERC721Enumerable_init_unchained() internal onlyInitializing {
-    }
+    function __ERC721Enumerable_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721Upgradeable) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(IERC165, ERC721Upgradeable) returns (bool) {
         return interfaceId == type(IERC721Enumerable).interfaceId || super.supportsInterface(interfaceId);
     }
 
@@ -8703,8 +8675,6 @@ contract LicenseToken_V1_1_1 is ILicenseToken, ERC721EnumerableUpgradeable, Acce
     function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }
 
-
-
 // contracts/old/v1.1.1/contracts/interfaces/modules/royalty/policies/IIpRoyaltyVault.sol
 
 /// @title Ip royalty vault interface
@@ -8871,21 +8841,17 @@ library ArrayUtils {
     }
 }
 
-
 // node_modules/@openzeppelin/contracts/access/manager/IAccessManaged.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (access/manager/IAccessManaged.sol)
-
 
 // node_modules/@openzeppelin/contracts/access/manager/IAuthority.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (access/manager/IAuthority.sol)
 
-
 // node_modules/@openzeppelin/contracts/interfaces/draft-IERC1822.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (interfaces/draft-IERC1822.sol)
-
 
 // node_modules/@openzeppelin/contracts/proxy/Proxy.sol
 
@@ -8959,7 +8925,6 @@ abstract contract Proxy {
 // node_modules/@openzeppelin/contracts/proxy/beacon/IBeacon.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/beacon/IBeacon.sol)
-
 
 // node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol
 
@@ -9134,8 +9099,6 @@ interface IERC20Permit {
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/Address.sol)
 
-
-
 // node_modules/@openzeppelin/contracts/utils/Context.sol
 
 // OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)
@@ -9169,12 +9132,9 @@ abstract contract Context {
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/StorageSlot.sol)
 // This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
 
-
-
 // node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/utils/Initializable.sol)
-
 
 // contracts/old/v1.1.1/contracts/interfaces/modules/royalty/policies/IRoyaltyPolicyLAP.sol
 
@@ -9375,7 +9335,8 @@ abstract contract ReentrancyGuardUpgradeable is Initializable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ReentrancyGuard")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ReentrancyGuardStorageLocation = 0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
+    bytes32 private constant ReentrancyGuardStorageLocation =
+        0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
 
     function _getReentrancyGuardStorage() private pure returns (ReentrancyGuardStorage storage $) {
         assembly {
@@ -9443,8 +9404,6 @@ abstract contract ReentrancyGuardUpgradeable is Initializable {
 // node_modules/@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/Pausable.sol)
-
-
 
 // node_modules/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol
 
@@ -9627,7 +9586,6 @@ library SafeERC20 {
     }
 }
 
-
 // node_modules/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/beacon/BeaconProxy.sol)
@@ -9680,8 +9638,6 @@ contract BeaconProxy is Proxy {
         return _beacon;
     }
 }
-
-
 
 // contracts/old/v1.1.1/contracts/modules/royalty/policies/RoyaltyPolicyLAP.sol
 
@@ -9969,4 +9925,3 @@ contract RoyaltyPolicyLAP_V1_1_1 is
     /// @param newImplementation The address of the new implementation
     function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }
-
