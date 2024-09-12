@@ -1,6 +1,6 @@
 /* solhint-disable no-console */
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.26;
 
 import { console2 } from "forge-std/console2.sol";
 import { Script } from "forge-std/Script.sol";
@@ -14,8 +14,11 @@ import { IPAssetRegistry } from "contracts/registries/IPAssetRegistry.sol";
 import { AccessController } from "contracts/access/AccessController.sol";
 import { LicenseRegistry } from "contracts/registries/LicenseRegistry.sol";
 import { LicenseToken } from "contracts/LicenseToken.sol";
-import { IPGraphACL } from "contracts/access/IPGraphACL.sol";
+import { PILicenseTemplate } from "contracts/modules/licensing/PILicenseTemplate.sol";
 import { RoyaltyPolicyLAP } from "contracts/modules/royalty/policies/LAP/RoyaltyPolicyLAP.sol";
+import { RoyaltyPolicyLRP } from "contracts/modules/royalty/policies/LRP/RoyaltyPolicyLRP.sol";
+import { IpRoyaltyVault } from "contracts/modules/royalty/policies/IpRoyaltyVault.sol";
+import { RoyaltyModule } from "contracts/modules/royalty/RoyaltyModule.sol";
 
 // script
 import { UpgradedImplHelper } from "../../utils/upgrades/UpgradedImplHelper.sol";
@@ -26,7 +29,6 @@ import { StringUtil } from "../../utils/StringUtil.sol";
 import { ICreate3Deployer } from "@create3-deployer/contracts/ICreate3Deployer.sol";
 
 contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHelper {
-  
     address internal ERC6551_REGISTRY = 0x000000006551c19487814612e58FE06813775758;
     address internal CREATE3_DEPLOYER = 0x384a891dFDE8180b054f04D66379f16B7a678Ad6;
     uint256 internal CREATE3_DEFAULT_SEED = 0;
@@ -34,25 +36,27 @@ contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHe
     bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     ICreate3Deployer internal immutable create3Deployer;
+    uint256 internal create3SaltSeed = CREATE3_DEFAULT_SEED;
 
     string constant PREV_VERSION = "v1.1.1";
-    string constant PROPOSAL_VERSION = "v1.2";
+    string constant PROPOSAL_VERSION = "v1.2.0";
 
     AccessManager internal protocolAccessManager;
     AccessController internal accessController;
     IPAssetRegistry internal ipAssetRegistry;
     LicenseRegistry internal licenseRegistry;
     LicenseToken internal licenseToken;
-    IPGraphACL internal ipGraphACL;
     RoyaltyPolicyLAP internal royaltyPolicyLAP;
+    RoyaltyPolicyLRP internal royaltyPolicyLRP;
+    // Grouping
+    GroupNFT internal groupNft;
+    GroupingModule internal groupingModule;
     address licensingModule;
     address disputeModule;
     address royaltyModule;
     address ipAccountImpl;
-
-    // Grouping
-    GroupNFT internal groupNft;
-    GroupingModule internal groupingModule;
+    address ipGraphACL;
+    address piLicenseTemplate;
 
     constructor() JsonDeploymentHandler("main") {
         create3Deployer = ICreate3Deployer(CREATE3_DEPLOYER);
@@ -71,9 +75,14 @@ contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHe
         disputeModule = _readAddress("DisputeModule");
         royaltyModule = _readAddress("RoyaltyModule");
         ipAccountImpl = _readAddress("IPAccountImpl");
+        piLicenseTemplate = _readAddress("PILicenseTemplate");
+        ipGraphACL = _readAddress("IPGraphACL");
+        groupingModule = GroupingModule(_readAddress("GroupingModule"));
+        groupNft = GroupNFT(_readAddress("GroupNFT"));
+        royaltyPolicyLRP = RoyaltyPolicyLRP(_readAddress("RoyaltyPolicyLRP"));
 
         _beginBroadcast(); // BroadcastManager.s.sol
-        
+
         UpgradeProposal[] memory proposals = deploy();
         _writeUpgradeProposals(PREV_VERSION, PROPOSAL_VERSION, proposals); // JsonDeploymentHandler.s.sol
 
@@ -85,29 +94,27 @@ contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHe
         address impl;
 
         // Deploy new contracts
-
-        contractKey = "GroupNFT";
-        _predeploy(contractKey);
-        impl = address(new GroupNFT( _getDeployedAddress(type(GroupingModule).name)));
-        groupNft = GroupNFT(
+        /* Deployed before rebase
+        _predeploy("RoyaltyPolicyLRP");
+        impl = address(new RoyaltyPolicyLRP(address(royaltyModule)));
+        royaltyPolicyLRP = RoyaltyPolicyLRP(
             TestProxyHelper.deployUUPSProxy(
                 create3Deployer,
-                _getSalt(type(GroupNFT).name), // This salt adds PROPOSAL_VERSION to the salt
+                _getSalt(type(RoyaltyPolicyLRP).name),
                 impl,
-                abi.encodeCall(
-                    GroupNFT.initialize,
-                    (
-                        address(protocolAccessManager),
-                        "https://github.com/storyprotocol/protocol-core/blob/main/assets/license-image.gif"
-                    )
-                )
+                abi.encodeCall(RoyaltyPolicyLRP.initialize, address(protocolAccessManager))
             )
         );
-        require(_getDeployedAddress(type(GroupNFT).name) == address(groupNft), "Deploy: GroupNFT Address Mismatch");
-        require(_loadProxyImpl(address(groupNft)) == impl, "GroupNFT Proxy Implementation Mismatch");
-        impl = address(0); // Make sure we don't deploy wrong impl
-        _postdeploy(contractKey, address(groupNft));
+        require(
+            _getDeployedAddress(type(RoyaltyPolicyLRP).name) == address(royaltyPolicyLRP),
+            "Deploy: Royalty Policy Address Mismatch"
+        );
+        require(_loadProxyImpl(address(royaltyPolicyLRP)) == impl, "RoyaltyPolicyLRP Proxy Implementation Mismatch");
+        impl = address(0);
+        _postdeploy("RoyaltyPolicyLRP", address(royaltyPolicyLRP));
+        */
 
+        /* Deployed before rebase
         contractKey = "GroupingModule";
         _predeploy(contractKey);
         impl = address(
@@ -115,7 +122,7 @@ contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHe
                 address(accessController),
                 address(ipAssetRegistry),
                 address(licenseRegistry),
-                _getDeployedAddress(type(LicenseToken).name),
+                address(licenseToken),
                 address(groupNft)
             )
         );
@@ -134,55 +141,114 @@ contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHe
         require(_loadProxyImpl(address(groupingModule)) == impl, "Grouping Proxy Implementation Mismatch");
         impl = address(0);
         _postdeploy(contractKey, address(groupingModule));
+        */
 
-        _predeploy("IPGraphACL");
-        ipGraphACL = IPGraphACL(
-            create3Deployer.deploy(
-                _getSalt(type(IPGraphACL).name), // This salt adds PROPOSAL_VERSION to the salt
-                abi.encodePacked(
-                    type(IPGraphACL).creationCode,
-                    abi.encode(address(protocolAccessManager))
+        /* Deployed manually
+        contractKey = "GroupNFT";
+        _predeploy(contractKey);
+        impl = address(new GroupNFT(address(groupingModule)));
+        console2.log("GroupNFT impl:", impl);
+        groupNft = GroupNFT(
+            TestProxyHelper.deployUUPSProxy(
+                create3Deployer,
+                _getSalt(type(GroupNFT).name), // This salt adds PROPOSAL_VERSION to the salt
+                impl,
+                abi.encodeCall(
+                    GroupNFT.initialize,
+                    (
+                        address(protocolAccessManager),
+                        "https://github.com/storyprotocol/protocol-core/blob/main/assets/license-image.gif"
+                    )
                 )
             )
         );
-        _postdeploy("IPGraphACL", address(ipGraphACL));
+        require(_getDeployedAddress(type(GroupNFT).name) == address(groupNft), "Deploy: GroupNFT Address Mismatch");
+        require(_loadProxyImpl(address(groupNft)) == impl, "GroupNFT Proxy Implementation Mismatch");
+        impl = address(0); // Make sure we don't deploy wrong impl
+        _postdeploy(contractKey, address(groupNft));
+        */
+        /*
+        // Deploy new implementations
+        contractKey = "GroupingModule";
+        _predeploy(contractKey);
+        impl = address(
+            new GroupingModule(
+                address(accessController),
+                address(ipAssetRegistry),
+                address(licenseRegistry),
+                address(licenseToken),
+                address(groupNft)
+            )
+        );
+        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(groupingModule), newImpl: impl }));
         impl = address(0);
 
-
-        // Deploy new implementations
         contractKey = "LicenseToken";
         _predeploy(contractKey);
         impl = address(new LicenseToken(licensingModule, disputeModule));
         upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(licenseToken), newImpl: impl }));
-       
-        contractKey = "RoyaltyPolicyLAP";
-        _predeploy(contractKey);
-        impl = address(new RoyaltyPolicyLAP(royaltyModule, disputeModule, address(ipGraphACL)));
-        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(royaltyPolicyLAP), newImpl: impl }));
+        impl = address(0);
 
         contractKey = "IPAssetRegistry";
         _predeploy(contractKey);
-        impl = address(
-            new IPAssetRegistry(
-                ERC6551_REGISTRY,
-                ipAccountImpl,
-                address(groupingModule)
-            )
-        );
+        impl = address(new IPAssetRegistry(ERC6551_REGISTRY, ipAccountImpl, address(groupingModule)));
         upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(ipAssetRegistry), newImpl: impl }));
-        //LicenseRegistry
+        impl = address(0);
+
         contractKey = "LicenseRegistry";
         _predeploy(contractKey);
+        impl = address(new LicenseRegistry(licensingModule, disputeModule, address(ipGraphACL)));
+        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(licenseRegistry), newImpl: impl }));
+        impl = address(0);
+
+        contractKey = "PILicenseTemplate";
+        _predeploy(contractKey);
         impl = address(
-            new LicenseRegistry(
-                licensingModule,
-                disputeModule,
-                address(ipGraphACL)
+            new PILicenseTemplate(
+                address(accessController),
+                address(ipAssetRegistry),
+                address(licenseRegistry),
+                address(royaltyModule)
             )
         );
-        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(licenseRegistry), newImpl: impl }));    
+        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(piLicenseTemplate), newImpl: impl }));
+        impl = address(0);
+        */
+        contractKey = "RoyaltyPolicyLAP";
+        _predeploy(contractKey);
+        impl = address(new RoyaltyPolicyLAP(royaltyModule, disputeModule, address(ipGraphACL)));
+        console2.log("RoyaltyPolicyLAP impl:", impl);
+        //upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(royaltyPolicyLAP), newImpl: impl }));
+        impl = address(0);
+        /*
+        contractKey = "RoyaltyPolicyLRP";
+        _predeploy(contractKey);
+        impl = address(new RoyaltyPolicyLRP(address(royaltyModule)));
+        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(royaltyPolicyLRP), newImpl: impl }));
+        impl = address(0);
 
+        contractKey = "RoyaltyModule";
+        _predeploy(contractKey);
+        impl = address(
+            new RoyaltyModule(
+                address(licensingModule),
+                address(disputeModule),
+                address(licenseRegistry),
+                address(ipAssetRegistry)
+            )
+        );
+        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(royaltyModule), newImpl: impl }));
+        impl = address(0);
+
+        contractKey = "IpRoyaltyVault";
+        _predeploy(contractKey);
+        impl = address(new IpRoyaltyVault(disputeModule, royaltyModule));
+        // In this case, "proxy" is the royaltyModule, since it can upgrade the vaults
+        upgradeProposals.push(UpgradeProposal({ key: contractKey, proxy: address(royaltyModule), newImpl: impl }));
+        impl = address(0);
+        */
         _logUpgradeProposals();
+        
         return upgradeProposals;
     }
 
@@ -204,6 +270,7 @@ contract DeployerV1_2 is JsonDeploymentHandler, BroadcastManager, UpgradedImplHe
         return address(uint160(uint256(vm.load(proxy, IMPLEMENTATION_SLOT))));
     }
 
+    /// @dev get the salt for the contract deployment with CREATE3
     function _getSalt(string memory name) private view returns (bytes32 salt) {
         salt = keccak256(abi.encode(name, PROPOSAL_VERSION));
     }

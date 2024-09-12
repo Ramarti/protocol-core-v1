@@ -1,29 +1,56 @@
-import { console2 } from "forge-std/console2.sol";
-import { UpgradeExecuter } from "../../utils/upgrades/UpgradeExecuter.s.sol";
+/* solhint-disable no-console */
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
 
-contract ExecuteV1_2 is UpgradeExecuter {
+import { console2 } from "forge-std/console2.sol";
+import { UpgradeExecutor } from "../../utils/upgrades/UpgradeExecutor.s.sol";
+
+contract ExecuteV1_2 is UpgradeExecutor {
     
-    constructor() UpgradeExecuter(
+    constructor() UpgradeExecutor(
         "v1.1.1", // From version
-        "v1.2", // To version
-        UpgradeModes.EXECUTE, // Schedule or Execute upgrade
+        "v1.2.0", // To version
+        UpgradeModes.EXECUTE, // Schedule, Cancel or Execute upgrade
         Output.BATCH_TX_EXECUTION // Output mode
     ) {}
 
     function _scheduleUpgrades() internal virtual override {
         console2.log("Scheduling upgrades  -------------");
-
-        _scheduleUpgrade("LicenseToken");
-        _scheduleUpgrade("RoyaltyPolicyLAP");
+        _scheduleUpgrade("GroupingModule");
         _scheduleUpgrade("IPAssetRegistry");
         _scheduleUpgrade("LicenseRegistry");
+        _scheduleUpgrade("LicenseToken");
+        _scheduleUpgrade("PILicenseTemplate");
+        _scheduleUpgrade("RoyaltyModule");
+        _scheduleUpgrade("RoyaltyPolicyLAP");
+        _scheduleUpgrade("RoyaltyPolicyLRP");
+        _scheduleUpgrade("IpRoyaltyVault");
     }
 
     function _executeUpgrades() internal virtual override {
         console2.log("Executing upgrades  -------------");
-        _executeUpgrade("LicenseToken");
-        _executeUpgrade("RoyaltyPolicyLAP");
+        _executeUpgrade("IpRoyaltyVault");
+        _executeUpgrade("GroupingModule");
         _executeUpgrade("IPAssetRegistry");
         _executeUpgrade("LicenseRegistry");
+        _executeUpgrade("LicenseToken");
+        _executeUpgrade("PILicenseTemplate");
+        _executeUpgrade("RoyaltyModule");
+        _executeUpgrade("RoyaltyPolicyLAP");
+        _executeUpgrade("RoyaltyPolicyLRP");
+        
+    }
+
+    function _cancelScheduledUpgrades() internal virtual override {
+        console2.log("Cancelling upgrades  -------------");
+        _cancelScheduledUpgrade("GroupingModule");
+        _cancelScheduledUpgrade("IPAssetRegistry");
+        _cancelScheduledUpgrade("LicenseRegistry");
+        _cancelScheduledUpgrade("LicenseToken");
+        _cancelScheduledUpgrade("PILicenseTemplate");
+        _cancelScheduledUpgrade("RoyaltyModule");
+        _cancelScheduledUpgrade("RoyaltyPolicyLAP");
+        _cancelScheduledUpgrade("RoyaltyPolicyLRP");
+        _cancelScheduledUpgrade("IpRoyaltyVault");
     }
 }

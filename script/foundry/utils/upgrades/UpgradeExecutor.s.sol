@@ -21,7 +21,7 @@ import { ICreate3Deployer } from "@create3-deployer/contracts/ICreate3Deployer.s
 import { UpgradedImplHelper } from "./UpgradedImplHelper.sol";
 import { StorageLayoutChecker } from "./StorageLayoutCheck.s.sol";
 
-abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHandler, JsonBatchTxHelper {
+abstract contract UpgradeExecutor is Script, BroadcastManager, JsonDeploymentHandler, JsonBatchTxHelper {
 
     address internal ERC6551_REGISTRY = 0x000000006551c19487814612e58FE06813775758;
     address internal CREATE3_DEPLOYER = 0x384a891dFDE8180b054f04D66379f16B7a678Ad6;
@@ -264,12 +264,12 @@ abstract contract UpgradeExecuter is Script, BroadcastManager, JsonDeploymentHan
 
     function _getExecutionData(string memory key, UpgradedImplHelper.UpgradeProposal memory p) internal returns(bytes memory data) {
         if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked("IpRoyaltyVault"))) {
-            console2.log("Schedule upgradeVaults");
+            console2.log("encoding upgradeVaults");
             data = abi.encodeCall(
                 IVaultController.upgradeVaults, (p.newImpl)
             );
         } else {            
-            console2.log("Schedule upgradeUUPS");
+            console2.log("encoding upgradeUUPS");
             data = abi.encodeCall(
                 UUPSUpgradeable.upgradeToAndCall,
                 (p.newImpl, "")
