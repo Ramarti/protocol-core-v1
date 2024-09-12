@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
+/* solhint-disable */
 pragma solidity ^0.8.23;
 
 // node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol
@@ -9925,3 +9926,4 @@ contract RoyaltyPolicyLAP_V1_1_1 is
     /// @param newImplementation The address of the new implementation
     function _authorizeUpgrade(address newImplementation) internal override restricted {}
 }
+/* solhint-enable */
